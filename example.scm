@@ -2,4 +2,8 @@
 ;   (succ succ 0))
 ; (lambda n (+ n 1))
 
-(lambda a ((lambda b (+ a b)) 2)) 1
+(define factorial
+  (lambda n
+	(+ n 1)))
+
+factorial 3

@@ -21,14 +21,20 @@ import Data.Maybe
     word             { TokenWord $$ }
     litnum           { TokenNum $$ }
     litstring        { TokenString $$ }
+    define           { TokenDefine }
+    lambda           { TokenLambda }
+    if               { TokenIf }
 
 %%
 
-Sexpr  : word            { Word $1 }
-       | litnum          { Number $1 }
-       | litstring       { LString $1 }
-       | Sexpr Sexpr     { $1 :-: $2 }
-       | '(' Sexpr ')'   { Paren $2 }
+Sexpr  : word                  { Word $1 }
+       | define word Sexpr     { Define $2 $3 }
+       | lambda word Sexpr     { Lambda $2 $3 }
+       | if Sexpr Sexpr Sexpr  { If $2 $3 $4 }
+       | litnum                { Number $1 }
+       | litstring             { LString $1 }
+       | Sexpr Sexpr           { $1 :-: $2 }
+       | '(' Sexpr ')'         { Paren $2 }
 
 {
 #include "main.hs"

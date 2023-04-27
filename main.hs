@@ -3,6 +3,9 @@ data Token = TokenLParen
            | TokenWord String
            | TokenNum Int
            | TokenString String
+           | TokenDefine
+           | TokenLambda
+           | TokenIf
            deriving Show
 
 infixr 5 :-:
@@ -12,7 +15,9 @@ data Sexpr = Word String
            | LString String
            | Sexpr :-: Sexpr
            | Paren Sexpr
+           | Define String Sexpr
            | Lambda String Sexpr
+           | If Sexpr Sexpr Sexpr
            deriving Show
 
 lexer :: String -> [Token]
@@ -40,8 +45,12 @@ lexStringS ('\'':cs) = TokenString str : lexer rest
     where (str,('\'':rest)) = span (/='\'') cs
 
 lexWord :: String -> [Token]
-lexWord s = TokenWord str : lexer rest
-    where (str,rest) = span (\c -> not $ isSpace c || c == ')' || c == '(') s
+lexWord s
+    | word == "define"   = TokenDefine : lexer rest
+    | word == "lambda"   = TokenLambda : lexer rest
+    | word == "if"       = TokenIf     : lexer rest
+    | otherwise          = TokenWord word : lexer rest
+    where (word,rest) = span (\c -> not $ isSpace c || c == ')' || c == '(') s
 
 parseError :: [Token] -> a
 parseError [] = error "Parse error"
@@ -62,23 +71,21 @@ eval d (e :-: Paren ε) = do
     a <- eval d ε
     eval d $ e :-: a
 
--- builtins
-eval _ (Word "lambda" :-: Word x :-: body) = -- return $ Number 31415
-    return $ Lambda x body
+{------ builtins ------}
+-- evaluate everything following with `k` bound to `v`
+eval d (Define k v :-: rest) = eval ((k,v):d) rest
 
-eval d (Lambda x body :-: arg) =
-    eval ((x,arg):d) body -- eval body just to reduce what we can
+-- beta reduction; evaluate the body with `x` bound to `arg`
+eval d (Lambda x body :-: arg) = eval ((x,arg):d) body
 
-eval d (Word "if" :-: cond :-: cThen :-: cElse) = do
-    x <- eval d cond
+-- if `cond` doesn't evaluate to zero, evaluate to `then_`
+eval d (If cond then_ else_) = do
+    c <- eval d cond
+    if not $ falsey c
+    then eval d then_
+    else eval d else_
 
-    return $ if not $ falsey x 
-             then cThen
-             else cElse
-
-eval d (Word "def" :-: Word k :-: v :-: body) =
-    eval ((k,v):d) body
-
+-- arith
 eval d (Word op :-: (Number a) :-: (Number b))
     | op == "+"  = return $ Number $ a + b
     | op == "-"  = return $ Number $ a - b
