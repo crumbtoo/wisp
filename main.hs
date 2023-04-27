@@ -63,6 +63,8 @@ falsey _ = False
 type AssocList a = [(String,a)]
 
 eval :: AssocList Sexpr -> Sexpr -> IO Sexpr
+
+{------ top ------}
 eval d (Paren e) = eval d e
 eval d (Paren e :-: ε) = do
     a <- eval d e
@@ -85,7 +87,7 @@ eval d (If cond then_ else_) = do
     then eval d then_
     else eval d else_
 
--- arith
+{------ arithmetic ------}
 eval d (Word op :-: (Number a) :-: (Number b))
     | op == "+"  = return $ Number $ a + b
     | op == "-"  = return $ Number $ a - b
@@ -98,6 +100,7 @@ eval d (Word op :-: a :-: b) | op `elem` ["+","-","*","/"] = do
     y <- eval d b
     eval d $ Word op :-: x :-: y
 
+{------ variables ------}
 eval d (Word k) = case lookup k d of
     (Just v) -> eval d v
     Nothing  -> error $ printf "`%s' is undefined." k
@@ -106,6 +109,8 @@ eval d (Word k :-: rest) = case lookup k d of
     (Just v) -> eval d $ v :-: rest
     Nothing  -> error $ printf "`%s' is undefined." k
 
+
+{------ edge case ------}
 eval _ x = return x
 
 label :: (Show a) => String -> a -> IO ()
