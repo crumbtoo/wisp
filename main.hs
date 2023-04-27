@@ -57,6 +57,11 @@ falsey _ = False
 
 type AssocList a = [(String,a)]
 
+lookupVar :: String -> AssocList v -> v
+lookupVar k d = case lookup k d of
+    (Just v) -> v
+    Nothing -> error $ printf "`%s' is unbound" k
+
 eval :: AssocList Sexpr -> Sexpr -> IO Sexpr
 
 {------ top ------}
@@ -96,13 +101,9 @@ eval d (Word op :-: a :-: b) | op `elem` ["+","-","*","/"] = do
     eval d $ Word op :-: x :-: y
 
 {------ variables ------}
-eval d (Word k) = case lookup k d of
-    (Just v) -> eval d v
-    Nothing  -> error $ printf "`%s' is undefined." k
+eval d (Word k) = eval d (lookupVar k d)
 
-eval d (Word k :-: rest) = case lookup k d of
-    (Just v) -> eval d $ v :-: rest
-    Nothing  -> error $ printf "`%s' is undefined." k
+eval d (Word k :-: rest) = eval d $ lookupVar k d :-: rest
 
 
 {------ edge case ------}
