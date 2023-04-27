@@ -26,8 +26,7 @@ lexer (';':cs) = lexer $ dropWhile (/='\n') cs
 lexer ('(':cs) = TokenLParen : lexer cs
 lexer (')':cs) = TokenRParen : lexer cs
 lexer (c:cs)
-    | c == '"'  = lexStringD (c:cs)
-    | c == '\'' = lexStringS (c:cs)
+    | c == '"' || c == '\'' = lexString c (c:cs)
     | isSpace c = lexer cs
     | isDigit c = lexNum (c:cs)
     | otherwise = lexWord (c:cs)
@@ -36,13 +35,9 @@ lexNum :: String -> [Token]
 lexNum s = TokenNum (read num) : lexer rest
     where (num,rest) = span isDigit s
 
-lexStringD :: String -> [Token]
-lexStringD ('"':cs) = TokenString str : lexer rest
-    where (str,('"':rest)) = span (/='"') cs
-
-lexStringS :: String -> [Token]
-lexStringS ('\'':cs) = TokenString str : lexer rest
-    where (str,('\'':rest)) = span (/='\'') cs
+lexString :: Char -> String -> [Token]
+lexString q s = TokenString str : lexer rest
+    where (str,(_:rest)) = span (/=q) $ tail s
 
 lexWord :: String -> [Token]
 lexWord s
