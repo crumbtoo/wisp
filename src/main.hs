@@ -60,14 +60,14 @@ main :: IO ()
 main = do
     (opts,files) <- getArgs >>= wispOpts
 
-    forM_ opts (\case
-        (Version) -> putStrLn "wisp 0.0.0" >> exitSuccess
-        (ExecProgram s) -> evalStackT (execProgram . parseProgram $ lexer s) defaultEnv
-        (EvalExpression s) -> do
-            evalStackT (eval . parseSexpr $ lexer s) defaultEnv
-            return ()
-        )
-    
-    print opts
-    print files
-
+    if null opts && null files then
+        getContents >>= printParse
+    else
+        forM_ opts (\case
+            (Version) -> putStrLn "wisp 0.0.0" >> exitSuccess
+            (ExecProgram s) -> evalStackT (execProgram . parseProgram $ lexer s) defaultEnv
+            (EvalExpression s) -> do
+                evalStackT (eval . parseSexpr $ lexer s) defaultEnv
+                return ()
+            )
+        
