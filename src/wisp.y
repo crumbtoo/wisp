@@ -9,6 +9,8 @@ import Control.Monad
 import Text.Printf
 import Data.Maybe
 import StackMonad
+import Lexer
+import Evaluater
 
 }
 
@@ -28,6 +30,9 @@ import StackMonad
 
 %%
 
+Program : Sexpr                         { [ $1 ] }
+        | Sexpr Program                 { $1 : $2 }
+
 Sexpr : Constant                        { $1 }
       | identifier                      { Identifier $1 }
       | Application                     { $1 }
@@ -44,6 +49,12 @@ Constant : litnum                    { ConstNumber $1 }
          | litstring                 { ConstString $1 }
 
 {
+
+parseError :: [Token] -> a
+parseError [] = error "Parse error"
+parseError ts = error $ printf "Parse error near '%s'" (show $ head ts)
+
 #include "../src/main.hs"
+
 }
 

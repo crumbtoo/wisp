@@ -1,3 +1,4 @@
+SOURCE := $(shell ls src/*.hs | grep -v main.hs)
 all: build wisp
 
 build:
@@ -6,8 +7,8 @@ build:
 build/wisp.hs: src/wisp.y
 	happy -a -g -c -o $@ $<
 
-wisp: build/wisp.hs src/main.hs src/StackMonad.hs
-	ghc -fglasgow-exts -outputdir=build -o $@ $< src/StackMonad.hs
+wisp: build/wisp.hs $(SOURCE)
+	ghc -fglasgow-exts -outputdir=build -o $@ $< $(SOURCE)
 
 .PHONY:
 clean:
