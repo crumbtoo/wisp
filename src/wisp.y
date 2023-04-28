@@ -14,7 +14,9 @@ import Evaluater
 
 }
 
-%name wispParser
+%name parseProgram Program
+%name parseSexpr Sexpr
+
 %tokentype { Token }
 %error { parseError }
 
