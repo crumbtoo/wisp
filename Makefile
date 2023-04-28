@@ -9,7 +9,7 @@ build/wisp.hs: src/wisp.y
 	happy -a -g -c -o $@ $<
 
 wisp: build/wisp.hs $(SOURCE)
-	ghc -fglasgow-exts -outputdir=build -o $@ $< $(SOURCE)
+	ghc -outputdir=build -o $@ $< $(SOURCE)
 
 .PHONY:
 clean:
