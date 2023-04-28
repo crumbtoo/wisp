@@ -60,6 +60,10 @@ eval (Add a b) = evalBuiltinBinary (+) a b
 eval (Subtract a b) = evalBuiltinBinary (-) a b
 eval (Multiply a b) = evalBuiltinBinary (*) a b
 eval (Divide a b) = evalBuiltinBinary (/) a b
+eval (Print e) = do
+    return . putStrLn $ case e of
+        (ConstNumber n) -> show n
+    return ConstUnit
 
 {------ application ------}
 eval (f :-: x) = do

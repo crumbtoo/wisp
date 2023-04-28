@@ -17,15 +17,18 @@ infixl 5 :-:
 data Sexpr = Identifier String
            | ConstNumber Double
            | ConstString String
+           | ConstUnit
            | Sexpr :-: Sexpr -- application
            | Paren Sexpr
            | Define String Sexpr
            | Lambda String Sexpr
            | If Sexpr Sexpr Sexpr
+           {-------- below only arise from evaluation --------}
            | Add Sexpr Sexpr
            | Subtract Sexpr Sexpr
            | Multiply Sexpr Sexpr
            | Divide Sexpr Sexpr
+           | Print Sexpr
            deriving Show
 
 lexer :: String -> [Token]

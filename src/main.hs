@@ -32,20 +32,19 @@ printParse :: String -> IO ()
 printParse s = do
     label "tokens : " $ lexer $ s
     label "ast    : " $ parseProgram . lexer $ s
-    label "result : " =<< evalStackT (execProgram . parseProgram $ lexer s) env
+    label "result : " =<< evalStackT (execProgram . parseProgram $ lexer s) defaultEnv
     return ()
     where
         label s a = putStrLn $ s ++ show a
 
-        mkbinop f = Lambda "x" (Lambda "y" (f (Identifier "x") (Identifier "y")))
-        env = [ ("+", mkbinop Add)
-              , ("-", mkbinop Subtract)
-              , ("*", mkbinop Multiply)
-              , ("/", mkbinop Divide)
-              ]
-
 defaultEnv :: [WispVariable]
-defaultEnv = []
+defaultEnv = [ ("+", mkbinop Add)
+             , ("-", mkbinop Subtract)
+             , ("*", mkbinop Multiply)
+             , ("/", mkbinop Divide)
+             , ("print", Lambda "s" $ Print $ Identifier "s")
+             ]
+      where mkbinop f = Lambda "x" (Lambda "y" (f (Identifier "x") (Identifier "y")))
 
 wispOpts :: [String] -> IO ([Flag], [String])
 wispOpts argv = 
@@ -65,9 +64,11 @@ main = do
     else
         forM_ opts (\case
             (Version) -> putStrLn "wisp 0.0.0" >> exitSuccess
-            (ExecProgram s) -> evalStackT (execProgram . parseProgram $ lexer s) defaultEnv
-            (EvalExpression s) -> do
-                evalStackT (eval . parseSexpr $ lexer s) defaultEnv
-                return ()
+            (ExecProgram s) ->
+                printParse s
+                -- putStrLn . show $ evalStackT (execProgram . parseProgram $ lexer s) defaultEnv
+            -- (EvalExpression s) -> do
+                -- return $ evalStackT (eval . parseSexpr $ lexer s) defaultEnv
+                -- return ()
             )
         
