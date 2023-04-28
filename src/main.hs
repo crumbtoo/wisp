@@ -1,6 +1,6 @@
 data Token = TokenLParen
            | TokenRParen
-           | TokenWord String
+           | TokenIdentifier String
            | TokenNum Int
            | TokenString String
            | TokenDefine
@@ -8,11 +8,11 @@ data Token = TokenLParen
            | TokenIf
            deriving Show
 
-infixr 5 :-:
+infixl 5 :-:
 
-data Sexpr = Word String
-           | Number Int
-           | LString String
+data Sexpr = Identifier String
+           | ConstNumber Int
+           | ConstString String
            | Sexpr :-: Sexpr
            | Paren Sexpr
            | Define String Sexpr
@@ -22,29 +22,51 @@ data Sexpr = Word String
 
 lexer :: String -> [Token]
 lexer [] = []
+
+{-------- operators --------}
 lexer (';':cs) = lexer $ dropWhile (/='\n') cs
 lexer ('(':cs) = TokenLParen : lexer cs
 lexer (')':cs) = TokenRParen : lexer cs
+-- lexer ('"':cs) = lexQuote ('"':cs)
+
+{-------- keywords --------}
+lexer s
+    | word == "define"   = TokenDefine : lexer rest
+    | word == "lambda"   = TokenLambda : lexer rest
+    | word == "if"       = TokenIf     : lexer rest
+    where (word,rest) = span (\c -> not $ isSpace c || c == ')' || c == '(') s
+
+{-------- misc --------}
 lexer (c:cs)
-    | c == '"' || c == '\'' = lexString c (c:cs)
-    | isSpace c = lexer cs
-    | isDigit c = lexNum (c:cs)
-    | otherwise = lexWord (c:cs)
+    | isInitial c = lexIdentifier (c:cs)
+    | isSpace c   = lexer cs
+    | isDigit c   = lexNum (c:cs)
+
+isInitial :: Char -> Bool
+isInitial ch = isLetter ch || ch `elem` identifierSymbols 
+
+identifierSymbols :: String
+identifierSymbols = "!#$%&+-*/.:<=>?@\\^_`|~"
+
+lexIdentifier :: String -> [Token]
+lexIdentifier (c:cs) = (TokenIdentifier $ c : s) : lexer rest
+    where
+        (s,rest) = span subsequent cs
+        subsequent ch = isInitial ch || isDigit ch
 
 lexNum :: String -> [Token]
 lexNum s = TokenNum (read num) : lexer rest
     where (num,rest) = span isDigit s
 
-lexString :: Char -> String -> [Token]
-lexString q s = TokenString str : lexer rest
-    where (str,(_:rest)) = span (/=q) $ tail s
+lexString :: String -> [Token]
+lexString (c:cs) = TokenString str : lexer rest
+    where (str,(rest)) = span (/=c) cs
 
 lexWord :: String -> [Token]
 lexWord s
     | word == "define"   = TokenDefine : lexer rest
     | word == "lambda"   = TokenLambda : lexer rest
     | word == "if"       = TokenIf     : lexer rest
-    | otherwise          = TokenWord word : lexer rest
     where (word,rest) = span (\c -> not $ isSpace c || c == ')' || c == '(') s
 
 parseError :: [Token] -> a
@@ -52,7 +74,7 @@ parseError [] = error "Parse error"
 parseError ts = error $ printf "Parse error near '%s'" (show $ head ts)
 
 falsey :: Sexpr -> Bool
-falsey (Number 0) = True
+falsey (ConstNumber 0) = True
 falsey _ = False
 
 type AssocList a = [(String,a)]
@@ -62,9 +84,10 @@ lookupVar k d = case lookup k d of
     (Just v) -> v
     Nothing -> error $ printf "`%s' is unbound" k
 
+-- TODO: reader monad?
 eval :: AssocList Sexpr -> Sexpr -> IO Sexpr
 
-{------ top ------}
+{------ recurse down parens ------}
 eval d (Paren e) = eval d e
 eval d (Paren e :-: ε) = do
     a <- eval d e
@@ -74,37 +97,14 @@ eval d (e :-: Paren ε) = do
     eval d $ e :-: a
 
 {------ builtins ------}
--- evaluate everything following with `k` bound to `v`
-eval d (Define k v :-: rest) = eval ((k,v):d) rest
-
--- beta reduction; evaluate the body with `x` bound to `arg`
 eval d (Lambda x body :-: arg) = eval ((x,arg):d) body
 
--- if `cond` doesn't evaluate to zero, evaluate to `then_`
-eval d (If cond then_ else_) = do
-    c <- eval d cond
-    if not $ falsey c
-    then eval d then_
-    else eval d else_
 
 {------ arithmetic ------}
-eval d (Word op :-: (Number a) :-: (Number b))
-    | op == "+"  = return $ Number $ a + b
-    | op == "-"  = return $ Number $ a - b
-    | op == "*"  = return $ Number $ a * b
-    | op == "/"  = return $ Number $ a `div` b
 
--- recurse expr
-eval d (Word op :-: a :-: b) | op `elem` ["+","-","*","/"] = do
-    x <- eval d a
-    y <- eval d b
-    eval d $ Word op :-: x :-: y
 
 {------ variables ------}
-eval d (Word k) = eval d (lookupVar k d)
-
-eval d (Word k :-: rest) = eval d $ lookupVar k d :-: rest
-
+eval d (Identifier w) = return $ lookupVar w d
 
 {------ edge case ------}
 eval _ x = return x

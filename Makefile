@@ -1,11 +1,14 @@
-all: wisp
+all: build wisp
 
-wisp.hs: wisp.y
+build:
+	mkdir build || true
+
+build/wisp.hs: src/wisp.y
 	happy -a -g -c -o $@ $<
 
-wisp: wisp.hs main.hs
-	ghc -fglasgow-exts $<
+wisp: build/wisp.hs src/main.hs
+	ghc -fglasgow-exts -o $@ $< src/StackMonad.hs
 
 .PHONY:
 clean:
-	rm -rf *.hi *.o wisp wisp.hs
+	rm -rf build

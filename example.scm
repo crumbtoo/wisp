@@ -13,4 +13,4 @@
 	  (1))))
 
 ; factorial 6
-factorial 6
+(factorial 6)
