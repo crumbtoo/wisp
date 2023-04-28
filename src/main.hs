@@ -1,3 +1,23 @@
+module Main where
+
+import Data.Maybe ( fromMaybe )
+import System.Console.GetOpt
+import System.Environment ( getArgs )
+
+import Evaluater
+import Lexer
+import Parser
+import StackMonad
+
+data Flag 
+    = Version 
+    deriving Show
+
+options :: [OptDescr Flag]
+options =
+    [ Option ['V']     ["verbose"] (NoArg Version)       "show version number"
+    ]
+
 printParse :: String -> IO ()
 printParse s = do
     label "tokens : " $ lexer $ s

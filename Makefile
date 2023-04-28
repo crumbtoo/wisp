@@ -1,4 +1,5 @@
-SOURCE := $(shell ls src/*.hs | grep -v main.hs)
+SOURCE := $(wildcard src/*.hs)
+
 all: build wisp
 
 build:
@@ -13,3 +14,4 @@ wisp: build/wisp.hs $(SOURCE)
 .PHONY:
 clean:
 	rm -rf build
+

@@ -1,6 +1,6 @@
 {
 {-# LANGUAGE CPP #-}
-module Main where
+module Parser where
 
 import Data.Char
 import System.Environment
@@ -53,8 +53,6 @@ Constant : litnum                    { ConstNumber $1 }
 parseError :: [Token] -> a
 parseError [] = error "Parse error"
 parseError ts = error $ printf "Parse error near '%s'" (show $ head ts)
-
-#include "../src/main.hs"
 
 }
 
