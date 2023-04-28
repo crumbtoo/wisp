@@ -1,7 +1,7 @@
 data Token = TokenLParen
            | TokenRParen
            | TokenIdentifier String
-           | TokenNum Int
+           | TokenNum Double
            | TokenString String
            | TokenDefine
            | TokenLambda
@@ -11,7 +11,7 @@ data Token = TokenLParen
 infixl 5 :-:
 
 data Sexpr = Identifier String
-           | ConstNumber Int
+           | ConstNumber Double
            | ConstString String
            | Sexpr :-: Sexpr -- application
            | Paren Sexpr
@@ -97,6 +97,21 @@ lookupVar k = do
         (Just v) -> return v
         Nothing  -> error $ printf "`%s' is unbound" k -- TODO: exceptions
 
+evalnum :: (Monad m) => Sexpr -> StackT WispVariable m Double
+evalnum e = do
+    e' <- eval e
+    case e' of
+        (ConstNumber n) -> return n
+        _ -> error "expected number"
+
+evalBuiltinBinary :: (Monad m) =>
+    (Double -> Double -> Double) -> Sexpr -> Sexpr -> StackT WispVariable m Sexpr
+
+evalBuiltinBinary f a b = do
+    a' <- evalnum a
+    b' <- evalnum b
+    return $ ConstNumber $ a' `f` b'
+
 eval :: (Monad m) => Sexpr -> StackT WispVariable m Sexpr
 
 {------ recurse down parens ------}
@@ -118,6 +133,11 @@ eval (Lambda x body :-: arg) = do
     arg' <- eval arg
     push (x,arg')
     eval body
+
+eval (Add a b) = evalBuiltinBinary (+) a b
+eval (Subtract a b) = evalBuiltinBinary (-) a b
+eval (Multiply a b) = evalBuiltinBinary (*) a b
+eval (Divide a b) = evalBuiltinBinary (/) a b
 
 {------ application ------}
 eval (f :-: x) = do
@@ -142,7 +162,11 @@ printParse s = do
     label "result : " =<< evalStackT (eval . wispParser $ lexer s) env
     return ()
     where
-        env = [ ("+", Lambda "x" (Lambda "y" (Add (Identifier "x") (Identifier "y"))))
+        mkbinop f = Lambda "x" (Lambda "y" (f (Identifier "x") (Identifier "y")))
+        env = [ ("+", mkbinop Add)
+              , ("-", mkbinop Subtract)
+              , ("*", mkbinop Multiply)
+              , ("/", mkbinop Divide)
               ]
 
 main :: IO ()
