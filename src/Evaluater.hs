@@ -19,22 +19,22 @@ lookupVar k = do
         (Just v) -> return v
         Nothing  -> error $ printf "`%s' is unbound" k -- TODO: exceptions
 
-evalnum :: (Monad m) => Sexpr -> StackT WispVariable m Double
+evalnum :: Sexpr -> StackT WispVariable IO Double
 evalnum e = do
     e' <- eval e
     case e' of
         (ConstNumber n) -> return n
         _ -> error "expected number"
 
-evalBuiltinBinary :: (Monad m) =>
-    (Double -> Double -> Double) -> Sexpr -> Sexpr -> StackT WispVariable m Sexpr
+evalBuiltinBinary :: 
+    (Double -> Double -> Double) -> Sexpr -> Sexpr -> StackT WispVariable IO Sexpr
 
 evalBuiltinBinary f a b = do
     a' <- evalnum a
     b' <- evalnum b
     return $ ConstNumber $ a' `f` b'
 
-eval :: (Monad m) => Sexpr -> StackT WispVariable m Sexpr
+eval :: Sexpr -> StackT WispVariable IO Sexpr
 
 {------ recurse down parens ------}
 eval (Paren e) = eval e
@@ -74,7 +74,7 @@ eval (Identifier w) = lookupVar w
 {------ edge case ------}
 eval x = return x
 
-execProgram :: (Monad m) => [Sexpr] -> StackT WispVariable m ()
+execProgram :: [Sexpr] -> StackT WispVariable IO ()
 execProgram [] = return ()
 execProgram (e:es) = do
     eval e
