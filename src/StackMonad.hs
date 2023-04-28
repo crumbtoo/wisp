@@ -7,6 +7,9 @@ import Control.Monad (liftM2, liftM)
 type Stack e v = StackT e Identity v
 newtype StackT e m v = StackT { runStackT :: [e] -> m (v, [e]) }
 
+evalStackT :: (Monad m) => StackT e m v -> [e] -> m v
+evalStackT m = fmap fst . runStackT m
+
 getStack :: (Monad m) => StackT e m [e]
 getStack = StackT $ \e -> return (e, e)
 

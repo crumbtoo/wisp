@@ -12,7 +12,7 @@ import StackMonad
 
 }
 
-%name dogeParser
+%name wispParser
 %tokentype { Token }
 %error { parseError }
 
@@ -34,6 +34,7 @@ Sexprs : Sexpr                        { $1 }
 Sexpr : Constant                        { $1 }
       | identifier                      { Identifier $1 }
       | Application                     { $1 }
+      | '(' define identifier Sexpr ')' { Define $3 $4 }
       | '(' lambda identifier Sexpr ')' { Lambda $3 $4 }
       | if Sexpr Sexpr Sexpr            { If $2 $3 $4 }
 
@@ -45,3 +46,4 @@ Constant : litnum                    { ConstNumber $1 }
 {
 #include "../src/main.hs"
 }
+

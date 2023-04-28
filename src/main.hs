@@ -79,45 +79,73 @@ falsey _ = False
 
 type AssocList a = [(String,a)]
 
-lookupVar :: String -> AssocList v -> v
-lookupVar k d = case lookup k d of
+lookupVar0 :: String -> AssocList v -> v
+lookupVar0 k d = case lookup k d of
     (Just v) -> v
     Nothing -> error $ printf "`%s' is unbound" k
 
 -- TODO: reader monad?
-eval :: AssocList Sexpr -> Sexpr -> IO Sexpr
+eval0 :: AssocList Sexpr -> Sexpr -> IO Sexpr
 
 {------ recurse down parens ------}
-eval d (Paren e) = eval d e
-eval d (Paren e :-: ε) = do
-    a <- eval d e
-    eval d $ a :-: ε
-eval d (e :-: Paren ε) = do
-    a <- eval d ε
-    eval d $ e :-: a
+eval0 d (Paren e) = eval0 d e
+eval0 d (Paren e :-: ε) = do
+    a <- eval0 d e
+    eval0 d $ a :-: ε
+eval0 d (e :-: Paren ε) = do
+    a <- eval0 d ε
+    eval0 d $ e :-: a
 
 {------ builtins ------}
-eval d (Lambda x body :-: arg) = eval ((x,arg):d) body
+eval0 d (Lambda x body :-: arg) = eval0 ((x,arg):d) body
 
 
 {------ arithmetic ------}
 
 
 {------ variables ------}
-eval d (Identifier w) = return $ lookupVar w d
+eval0 d (Identifier w) = return $ lookupVar0 w d
 
 {------ edge case ------}
-eval _ x = return x
+eval0 _ x = return x
+
+type WispVariable = (String,Sexpr)
+
+lookupVar :: (Monad m, Eq k, PrintfArg k) => k -> StackT (k, v) m v
+lookupVar k = do
+    a <- lookupStack k
+    case a of
+        (Just v) -> return v
+        Nothing  -> error $ printf "`%s' is unbound" k -- TODO: exceptions
+
+eval :: (Monad m) => Sexpr -> StackT WispVariable m Sexpr
+
+{------ builtins ------}
+eval (Define k v) = do
+    v' <- eval v
+    push (k,v')
+    return v
+
+eval (Lambda x body :-: arg) = do
+    arg' <- eval arg
+    push (x,arg')
+    eval body
+
+{------ variables ------}
+eval (Identifier w) = lookupVar w
+
+{------ edge case ------}
+eval x = return x
 
 label :: (Show a) => String -> a -> IO ()
 label s a = putStrLn $ s ++ show a
 
 printParse :: String -> IO ()
 printParse s = do
-        label "tokens : " $ lexer $ s
-        label "ast    : " $ dogeParser . lexer $ s
-        label "result : " =<< (eval [] . dogeParser . lexer) s
-        return ()
+    label "tokens : " $ lexer $ s
+    label "ast    : " $ wispParser . lexer $ s
+    label "result : " =<< evalStackT (eval . wispParser $ lexer s) []
+    return ()
 
 main :: IO ()
 main = do

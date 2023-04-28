@@ -6,8 +6,8 @@ build:
 build/wisp.hs: src/wisp.y
 	happy -a -g -c -o $@ $<
 
-wisp: build/wisp.hs src/main.hs
-	ghc -fglasgow-exts -o $@ $< src/StackMonad.hs
+wisp: build/wisp.hs src/main.hs src/StackMonad.hs
+	ghc -fglasgow-exts -outputdir=build -o $@ $< src/StackMonad.hs
 
 .PHONY:
 clean:
