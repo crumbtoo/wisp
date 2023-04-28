@@ -28,9 +28,6 @@ import StackMonad
 
 %%
 
-Sexprs : Sexpr                        { $1 }
-       | Sexprs Sexpr                 { $1 :-: $2 }
-
 Sexpr : Constant                        { $1 }
       | identifier                      { Identifier $1 }
       | Application                     { $1 }
@@ -39,6 +36,9 @@ Sexpr : Constant                        { $1 }
       | if Sexpr Sexpr Sexpr            { If $2 $3 $4 }
 
 Application : '(' Sexprs ')'          { $2 }
+
+Sexprs : Sexpr                        { $1 }
+       | Sexprs Sexpr                 { $1 :-: $2 }
 
 Constant : litnum                    { ConstNumber $1 }
          | litstring                 { ConstString $1 }

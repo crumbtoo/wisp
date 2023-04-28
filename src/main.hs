@@ -13,11 +13,15 @@ infixl 5 :-:
 data Sexpr = Identifier String
            | ConstNumber Int
            | ConstString String
-           | Sexpr :-: Sexpr
+           | Sexpr :-: Sexpr -- application
            | Paren Sexpr
            | Define String Sexpr
            | Lambda String Sexpr
            | If Sexpr Sexpr Sexpr
+           | Add Sexpr Sexpr
+           | Subtract Sexpr Sexpr
+           | Multiply Sexpr Sexpr
+           | Divide Sexpr Sexpr
            deriving Show
 
 lexer :: String -> [Token]
@@ -84,31 +88,6 @@ lookupVar0 k d = case lookup k d of
     (Just v) -> v
     Nothing -> error $ printf "`%s' is unbound" k
 
--- TODO: reader monad?
-eval0 :: AssocList Sexpr -> Sexpr -> IO Sexpr
-
-{------ recurse down parens ------}
-eval0 d (Paren e) = eval0 d e
-eval0 d (Paren e :-: ε) = do
-    a <- eval0 d e
-    eval0 d $ a :-: ε
-eval0 d (e :-: Paren ε) = do
-    a <- eval0 d ε
-    eval0 d $ e :-: a
-
-{------ builtins ------}
-eval0 d (Lambda x body :-: arg) = eval0 ((x,arg):d) body
-
-
-{------ arithmetic ------}
-
-
-{------ variables ------}
-eval0 d (Identifier w) = return $ lookupVar0 w d
-
-{------ edge case ------}
-eval0 _ x = return x
-
 type WispVariable = (String,Sexpr)
 
 lookupVar :: (Monad m, Eq k, PrintfArg k) => k -> StackT (k, v) m v
@@ -120,6 +99,15 @@ lookupVar k = do
 
 eval :: (Monad m) => Sexpr -> StackT WispVariable m Sexpr
 
+{------ recurse down parens ------}
+eval (Paren e) = eval e
+eval (Paren e :-: ε) = do
+    a <- eval e
+    eval $ a :-: ε
+eval (e :-: Paren ε) = do
+    a <- eval ε
+    eval $ e :-: a
+
 {------ builtins ------}
 eval (Define k v) = do
     v' <- eval v
@@ -130,6 +118,13 @@ eval (Lambda x body :-: arg) = do
     arg' <- eval arg
     push (x,arg')
     eval body
+
+{------ application ------}
+eval (f :-: x) = do
+    f' <- eval f
+    case f' of
+        (Lambda _ _) -> eval $ f' :-: x
+        _            -> error "attempted to apply a non-abstraction"
 
 {------ variables ------}
 eval (Identifier w) = lookupVar w
@@ -144,8 +139,11 @@ printParse :: String -> IO ()
 printParse s = do
     label "tokens : " $ lexer $ s
     label "ast    : " $ wispParser . lexer $ s
-    label "result : " =<< evalStackT (eval . wispParser $ lexer s) []
+    label "result : " =<< evalStackT (eval . wispParser $ lexer s) env
     return ()
+    where
+        env = [ ("+", Lambda "x" (Lambda "y" (Add (Identifier "x") (Identifier "y"))))
+              ]
 
 main :: IO ()
 main = do
