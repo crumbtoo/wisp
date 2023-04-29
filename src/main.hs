@@ -28,14 +28,14 @@ options =
         "execute program"
     ]
 
--- printParse :: String -> IO ()
--- printParse s = do
---     label "tokens : " $ lexer $ s
---     label "ast    : " $ parseProgram . lexer $ s
---     label "result : " =<< evalStackT (execProgram . parseProgram $ lexer s) defaultEnv
---     return ()
---     where
---         label s a = putStrLn $ s ++ show a
+printParse :: String -> IO ()
+printParse s = do
+    label "tokens : " $ lexer $ s
+    label "ast    : " $ parseSexpr . lexer $ s
+    label "result : " =<< evalStackT (eval . parseSexpr $ lexer s) defaultEnv
+    return ()
+    where
+        label s a = putStrLn $ s ++ show a
 
 defaultEnv :: [WispVariable]
 defaultEnv = [ ("+", mkbinop Add)
@@ -59,6 +59,8 @@ main :: IO ()
 main = do
     (opts,files) <- getArgs >>= wispOpts
     return ()
+
+    getContents >>= printParse
 
 {--
     if null opts && null files then

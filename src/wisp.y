@@ -28,7 +28,6 @@ import Evaluater
     define           { TokenDefine }
     lambda           { TokenLambda }
     if               { TokenIf }
-    print            { TokenPrint }
 
 %%
 
@@ -41,7 +40,6 @@ Sexpr : Constant                        { $1 }
       | '(' define identifier Sexpr ')' { Define $3 $4 }
       | '(' lambda identifier Sexpr ')' { Lambda $3 $4 }
       | '(' if Sexpr Sexpr Sexpr ')'    { If $3 $4 $5 }
-      | '(' print Sexpr ')'             { Print $3 }
 
 Application : '(' Sexprs ')'          { $2 }
 
