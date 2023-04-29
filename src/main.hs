@@ -6,6 +6,7 @@ import System.Console.GetOpt
 import System.Environment ( getArgs )
 import System.Exit
 import Control.Monad
+import Control.Monad.IO.Class
 
 import Evaluater
 import Lexer
@@ -31,8 +32,8 @@ options =
 printParse :: String -> IO ()
 printParse s = do
     label "tokens : " $ lexer $ s
-    label "ast    : " $ parseSexpr . lexer $ s
-    label "result : " =<< evalStackT (eval . parseSexpr $ lexer s) defaultEnv
+    label "ast    : " $ parseProgram . lexer $ s
+    label "result : " =<< evalStackT (execProgram . parseProgram $ lexer s) defaultEnv
     return ()
     where
         label s a = putStrLn $ s ++ show a
@@ -42,7 +43,7 @@ defaultEnv = [ ("+", mkbinop Add)
              , ("-", mkbinop Subtract)
              , ("*", mkbinop Multiply)
              , ("/", mkbinop Divide)
-             , ("print", Lambda "s" $ Print $ Identifier "s")
+             , ("trace", Lambda "s" $ Trace $ Identifier "s")
              ]
       where mkbinop f = Lambda "x" (Lambda "y" (f (Identifier "x") (Identifier "y")))
 
@@ -60,16 +61,13 @@ main = do
     (opts,files) <- getArgs >>= wispOpts
     return ()
 
-    getContents >>= printParse
-
-{--
+{--}
     if null opts && null files then
         getContents >>= printParse
     else
-        forM_ opts (\case
-            (Version) -> putStrLn "wisp 0.0.0" >> exitSuccess
-            (ExecProgram s) ->
-                printParse s
+        forM_ files (\f -> do
+            s <- readFile f
+            evalStackT (execProgram_ $ parseProgram $ lexer s) defaultEnv
             )
 --}
         

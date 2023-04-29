@@ -7,10 +7,10 @@ import Control.Monad.IO.Class
 import Debug.Trace
 
 class (Monad m) => WispMonad m where
-    wispPrint :: (Show a) => a -> m ()
+    wispTrace :: (Show a) => a -> m ()
 
 instance WispMonad (StackT e IO) where
-    wispPrint = liftIO . putStrLn . show
+    wispTrace = liftIO . putStrLn . show
 
 type WispVariable = (String,Sexpr)
 
@@ -55,28 +55,28 @@ eval (e :-: Paren ε) = do
     eval $ e :-: a
 
 {------ builtins ------}
--- eval (Define k v) = do
---     v' <- eval v
---     push (k,v')
---     return v
+eval (Define k v) = do
+    v' <- eval v
+    push (k,v')
+    return v
 
 eval (Lambda x body :-: arg) = do
     arg' <- eval arg
     push (x,arg')
     eval body
 
--- eval (If cond _then _else) = do
---     cond' <- eval cond
---     if not $ falsey cond'
---     then eval _then
---     else eval _else
+eval (If cond _then _else) = do
+    cond' <- eval cond
+    if booleanValue cond'
+    then eval _then
+    else eval _else
 
-eval (Print e) = do
+eval (Trace e) = do
     e' <- eval e
     case e' of
-        (ConstNumber n) -> wispPrint n
+        (ConstNumber n) -> wispTrace n
         _ -> typeError
-    return ConstUnit
+    return e'
 
 eval (Add a b) = evalBuiltinBinary (+) a b
 eval (Subtract a b) = evalBuiltinBinary (-) a b
@@ -96,18 +96,25 @@ eval (Identifier w) = lookupVar w
 {------ edge case ------}
 eval x = return x
 
--- execProgram :: [Sexpr] -> StackT WispVariable IO [Sexpr]
--- execProgram [] = return []
--- execProgram (e:es) = do
---     a <- eval e
---     b <- execProgram es
---     return $ a : b
+{------ other shit :D ------}
 
--- execProgram_ :: [Sexpr] -> StackT WispVariable IO ()
--- execProgram_ [] = return ()
--- execProgram_ (e:es) = do
---     eval e
---     execProgram_ es
+booleanValue :: Sexpr -> Bool
+booleanValue (ConstNumber 0) = False
+booleanValue _ = True
 
 typeError :: a
 typeError = error "type error lol :3"
+
+execProgram :: [Sexpr] -> StackT WispVariable IO [Sexpr]
+execProgram [] = return []
+execProgram (e:es) = do
+    a <- eval e
+    b <- execProgram es
+    return $ a : b
+
+execProgram_ :: [Sexpr] -> StackT WispVariable IO ()
+execProgram_ [] = return ()
+execProgram_ (e:es) = do
+    eval e
+    execProgram_ es
+

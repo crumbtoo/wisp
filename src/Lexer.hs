@@ -28,7 +28,7 @@ data Sexpr = Identifier String
            | Subtract Sexpr Sexpr
            | Multiply Sexpr Sexpr
            | Divide Sexpr Sexpr
-           | Print Sexpr
+           | Trace Sexpr
            deriving Show
 
 lexer :: String -> [Token]
