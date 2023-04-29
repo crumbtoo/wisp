@@ -10,7 +10,7 @@ import Control.Monad
 import Evaluater
 import Lexer
 import Parser
-import StackMonad
+import Stack
 
 data Flag 
     = Version 
@@ -28,14 +28,14 @@ options =
         "execute program"
     ]
 
-printParse :: String -> IO ()
-printParse s = do
-    label "tokens : " $ lexer $ s
-    label "ast    : " $ parseProgram . lexer $ s
-    label "result : " =<< evalStackT (execProgram . parseProgram $ lexer s) defaultEnv
-    return ()
-    where
-        label s a = putStrLn $ s ++ show a
+-- printParse :: String -> IO ()
+-- printParse s = do
+--     label "tokens : " $ lexer $ s
+--     label "ast    : " $ parseProgram . lexer $ s
+--     label "result : " =<< evalStackT (execProgram . parseProgram $ lexer s) defaultEnv
+--     return ()
+--     where
+--         label s a = putStrLn $ s ++ show a
 
 defaultEnv :: [WispVariable]
 defaultEnv = [ ("+", mkbinop Add)
@@ -58,7 +58,9 @@ wispOpts argv =
 main :: IO ()
 main = do
     (opts,files) <- getArgs >>= wispOpts
+    return ()
 
+{--
     if null opts && null files then
         getContents >>= printParse
     else
@@ -66,9 +68,6 @@ main = do
             (Version) -> putStrLn "wisp 0.0.0" >> exitSuccess
             (ExecProgram s) ->
                 printParse s
-                -- putStrLn . show $ evalStackT (execProgram . parseProgram $ lexer s) defaultEnv
-            -- (EvalExpression s) -> do
-                -- return $ evalStackT (eval . parseSexpr $ lexer s) defaultEnv
-                -- return ()
             )
+--}
         

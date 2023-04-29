@@ -5,17 +5,18 @@ import Data.Char
 data Token = TokenLParen
            | TokenRParen
            | TokenIdentifier String
-           | TokenNum Double
+           | TokenNum Int
            | TokenString String
            | TokenDefine
            | TokenLambda
            | TokenIf
+           | TokenPrint
            deriving Show
 
 infixl 5 :-:
 
 data Sexpr = Identifier String
-           | ConstNumber Double
+           | ConstNumber Int
            | ConstString String
            | ConstUnit
            | Sexpr :-: Sexpr -- application
@@ -23,12 +24,12 @@ data Sexpr = Identifier String
            | Define String Sexpr
            | Lambda String Sexpr
            | If Sexpr Sexpr Sexpr
+           | Print Sexpr
            {-------- below only arise from evaluation --------}
            | Add Sexpr Sexpr
            | Subtract Sexpr Sexpr
            | Multiply Sexpr Sexpr
            | Divide Sexpr Sexpr
-           | Print Sexpr
            deriving Show
 
 lexer :: String -> [Token]
@@ -45,6 +46,7 @@ lexer s
     | word == "define"   = TokenDefine : lexer rest
     | word == "lambda"   = TokenLambda : lexer rest
     | word == "if"       = TokenIf     : lexer rest
+    | word == "print"    = TokenPrint  : lexer rest
     where (word,rest) = span (\c -> not $ isSpace c || c == ')' || c == '(') s
 
 {-------- misc --------}

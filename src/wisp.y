@@ -8,7 +8,6 @@ import System.IO
 import Control.Monad
 import Text.Printf
 import Data.Maybe
-import StackMonad
 import Lexer
 import Evaluater
 
@@ -41,8 +40,8 @@ Sexpr : Constant                        { $1 }
       | Application                     { $1 }
       | '(' define identifier Sexpr ')' { Define $3 $4 }
       | '(' lambda identifier Sexpr ')' { Lambda $3 $4 }
-      | '(' if Sexpr Sexpr Sexpr ')'    { If $2 $3 $4 }
-      | '(' print Sexpr ')'    { If $2 $3 $4 }
+      | '(' if Sexpr Sexpr Sexpr ')'    { If $3 $4 $5 }
+      | '(' print Sexpr ')'             { Print $3 }
 
 Application : '(' Sexprs ')'          { $2 }
 
