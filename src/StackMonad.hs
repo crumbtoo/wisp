@@ -14,7 +14,7 @@ import Control.Monad.IO.Class
 
 class (Monad m) => MonadStack e m | m -> e where
     getStack :: (Monad m) => m [e]
-    push :: (Monad m) => e -> m ()
+    pushRun :: (Monad m) => e -> m v -> m v
 
 lookupStack :: (MonadStack (k,v) m, Eq k) => k -> m (Maybe v)
 lookupStack k = do
@@ -42,14 +42,14 @@ instance (Monad m) => Monad (StackT e m) where
     (>>=) :: StackT e m a -> (a -> StackT e m b) -> StackT e m b
     m >>= k = StackT $ \e -> do
         (a, ne) <- runStackT m e
-        runStackT (k a) ne
+        runStackT (k a) e
 
 instance (Monad m) => MonadStack e (StackT e m) where
     getStack :: StackT e m [e]
     getStack = StackT $ \e -> return (e, e)
 
-    push :: e -> StackT e m ()
-    push e = StackT $ \es -> return ((), e:es)
+    pushRun :: e -> StackT e m v -> StackT e m v
+    pushRun e st = StackT $ \es -> runStackT st (e:es)
 
 instance MonadIO (StackT e IO) where
     liftIO a = StackT $ \e -> do

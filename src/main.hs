@@ -38,6 +38,7 @@ printParse s = do
     where
         label s a = putStrLn $ s ++ show a
 
+-- TODO: is name collision a concern?
 defaultEnv :: [WispVariable]
 defaultEnv = [ ("+", mkbinop Add)
              , ("-", mkbinop Subtract)
@@ -45,7 +46,8 @@ defaultEnv = [ ("+", mkbinop Add)
              , ("/", mkbinop Divide)
              , ("trace", Lambda "s" $ Trace $ Identifier "s")
              ]
-      where mkbinop f = Lambda "x" (Lambda "y" (f (Identifier "x") (Identifier "y")))
+    where mkbinop f = Lambda "x" (Lambda "y" (f (Identifier "x") (Identifier "y")))
+        
 
 wispOpts :: [String] -> IO ([Flag], [String])
 wispOpts argv = 

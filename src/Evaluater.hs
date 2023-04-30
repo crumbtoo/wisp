@@ -14,14 +14,7 @@ instance WispMonad (StackT e IO) where
 
 type WispVariable = (String,Sexpr)
 
--- lookupVar :: (Monad m, Eq k, PrintfArg k) => k -> StackT (k, v) m v
--- lookupVar k = do
---     a <- lookupStack k
---     case a of
---         (Just v) -> return v
---         Nothing  -> error $ printf "`%s' is unbound" k -- TODO: exceptions
-
-lookupVar :: (PrintfArg k, Eq k, MonadStack (k,v) m) => k -> m v
+lookupVar :: (MonadStack (String,v) m) => String -> m v
 lookupVar k = do
     a <- lookupStack k
     return $ case a of
@@ -55,15 +48,14 @@ eval (e :-: Paren ε) = do
     eval $ e :-: a
 
 {------ builtins ------}
-eval (Define k v) = do
-    v' <- eval v
-    push (k,v')
-    return v
+-- eval (Define k v) = do
+--     v' <- eval v
+--     pushBottom (k,v')
+--     return v
 
 eval (Lambda x body :-: arg) = do
     arg' <- eval arg
-    push (x,arg')
-    eval body
+    pushRun (x,arg') (pure body)
 
 eval (If cond _then _else) = do
     cond' <- eval cond
@@ -79,16 +71,29 @@ eval (Trace e) = do
     return e'
 
 eval (Add a b) = evalBuiltinBinary (+) a b
-eval (Subtract a b) = evalBuiltinBinary (-) a b
-eval (Multiply a b) = evalBuiltinBinary (*) a b
+eval (Subtract a b) = do
+    a' <- eval a
+    b' <- eval b
+    trace (show a' ++ " - " ++ show b') $ evalBuiltinBinary (-) a b
+eval (Multiply a b) = do
+    a' <- eval a
+    b' <- eval b
+    trace (show a' ++ " * " ++ show b') $ evalBuiltinBinary (*) a b
 eval (Divide a b) = evalBuiltinBinary (div) a b
 
 {------ application ------}
 eval (f :-: x) = do
     f' <- eval f
+    st <- getStack
     case f' of
-        (Lambda _ _) -> eval $ f' :-: x
+        (Lambda _ _) -> trace (showStack st) $ eval $ f' :-: x
         _            -> error "attempted to apply a non-abstraction"
+    where
+        showStack s = "[ " ++ go s ++ "]"
+        go [] = ""
+        go [x] = show x ++ "\n"
+        go (x:xs) = show x ++ "\n, " ++ go xs
+
 
 {------ variables ------}
 eval (Identifier w) = lookupVar w
