@@ -6,6 +6,8 @@ data Token = TokenLParen
            | TokenRParen
            | TokenIdentifier String
            | TokenNum Int
+           | TokenTrue
+           | TokenFalse
            | TokenString String
            | TokenDefine
            | TokenLambda
@@ -17,6 +19,7 @@ infixl 5 :-:
 data Sexpr = Identifier String
            | ConstNumber Int
            | ConstString String
+           | ConstBool Bool
            | ConstUnit
            | Sexpr :-: Sexpr -- application
            | Paren Sexpr
@@ -46,6 +49,8 @@ lexer s
     | word == "define"   = TokenDefine : lexer rest
     | word == "lambda"   = TokenLambda : lexer rest
     | word == "if"       = TokenIf     : lexer rest
+    | word == "true"     = TokenTrue   : lexer rest
+    | word == "true"     = TokenFalse  : lexer rest
     where (word,rest) = span (\c -> not $ isSpace c || c == ')' || c == '(') s
 
 {-------- misc --------}

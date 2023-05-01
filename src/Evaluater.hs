@@ -79,6 +79,7 @@ eval (Trace e) = do
     e' <- eval e
     case e' of
         (ConstNumber n) -> wispTrace n
+        (ConstBool b) -> wispTrace b
         _ -> typeError
     return e'
 
@@ -104,6 +105,7 @@ eval x = return x
 {------ other shit :D ------}
 
 booleanValue :: Sexpr -> Bool
+booleanValue (ConstBool False) = False
 booleanValue (ConstNumber 0) = False
 booleanValue _ = True
 

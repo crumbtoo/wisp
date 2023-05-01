@@ -28,6 +28,8 @@ import Evaluater
     define           { TokenDefine }
     lambda           { TokenLambda }
     if               { TokenIf }
+    true             { TokenTrue }
+    false            { TokenFalse }
 
 %%
 
@@ -48,6 +50,8 @@ Sexprs : Sexpr                        { $1 }
 
 Constant : litnum                    { ConstNumber $1 }
          | litstring                 { ConstString $1 }
+         | true                      { ConstBool True }
+         | false                     { ConstBool False }
          | '(' ')'                   { ConstUnit }
 
 {
