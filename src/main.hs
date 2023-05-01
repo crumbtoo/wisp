@@ -71,7 +71,7 @@ main = do
 
 {--}
     if null opts && null files then
-        getContents >>= printParse
+        getContents >>= (runProgram . parseProgram . lexer) >> return ()
     else
         forM_ files (\f -> do
             s <- readFile f
