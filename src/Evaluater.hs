@@ -1,22 +1,27 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Evaluater where
 
-import Stack
+import Stack as S
 import Lexer
 import Text.Printf
 import Control.Monad.IO.Class
+import Control.Monad.State
+import Data.Map.Strict as M
 import Debug.Trace
+import WispMonad
 
-class (Monad m) => WispMonad m where
-    wispTrace :: (Show a) => a -> m ()
-
-instance WispMonad (StackT e IO) where
-    wispTrace = liftIO . putStrLn . show
-
-type WispVariable = (String,Sexpr)
-
-lookupVar :: (MonadStack (String,v) m) => String -> m v
-lookupVar k = do
+getVar :: (WispMonad m) => String -> m Sexpr
+getVar k = do
     a <- lookupStack k
+    case a of
+        (Just v) -> return v
+        Nothing  -> getGlobal k
+
+getGlobal :: (WispMonad m) => String -> m Sexpr
+getGlobal k = do
+    a <- lookupGlobal k
     return $ case a of
         (Just v) -> v
         Nothing  -> error $ printf "`%s' is unbound" k -- TODO: exceptions
@@ -40,22 +45,29 @@ eval :: (WispMonad m, MonadStack WispVariable m) => Sexpr -> m Sexpr
 
 {------ recurse down parens ------}
 eval (Paren e) = eval e
-eval (Paren e :-: ε) = do
-    a <- eval e
-    eval $ a :-: ε
-eval (e :-: Paren ε) = do
-    a <- eval ε
-    eval $ e :-: a
+-- eval (Paren e :-: ε) = do
+--     a <- eval e
+--     eval $ a :-: ε
+-- eval (e :-: Paren ε) = do
+--     a <- eval ε
+--     eval $ e :-: a
 
 {------ builtins ------}
--- eval (Define k v) = do
---     v' <- eval v
---     pushBottom (k,v')
---     return v
+eval (Define k v) = do
+    v' <- eval v
+    setGlobal k v'
+    return v'
+
+eval (Lambda x body) = do
+    a <- eval body
+    return $ Lambda x a
 
 eval (Lambda x body :-: arg) = do
+    st <- getStack
+    trace (printf "lambda %s" x) (pure ())
+    trace (showStack st) (pure ())
     arg' <- eval arg
-    pushRun (x,arg') (pure body)
+    pushRun (x,arg') (eval body)
 
 eval (If cond _then _else) = do
     cond' <- eval cond
@@ -71,32 +83,23 @@ eval (Trace e) = do
     return e'
 
 eval (Add a b) = evalBuiltinBinary (+) a b
-eval (Subtract a b) = do
-    a' <- eval a
-    b' <- eval b
-    trace (show a' ++ " - " ++ show b') $ evalBuiltinBinary (-) a b
-eval (Multiply a b) = do
-    a' <- eval a
-    b' <- eval b
-    trace (show a' ++ " * " ++ show b') $ evalBuiltinBinary (*) a b
+eval (Subtract a b) = evalBuiltinBinary (-) a b
+eval (Multiply a b) = evalBuiltinBinary (*) a b
 eval (Divide a b) = evalBuiltinBinary (div) a b
 
 {------ application ------}
 eval (f :-: x) = do
     f' <- eval f
-    st <- getStack
     case f' of
-        (Lambda _ _) -> trace (showStack st) $ eval $ f' :-: x
+        (Lambda _ _) -> eval $ f' :-: x
         _            -> error "attempted to apply a non-abstraction"
-    where
-        showStack s = "[ " ++ go s ++ "]"
-        go [] = ""
-        go [x] = show x ++ "\n"
-        go (x:xs) = show x ++ "\n, " ++ go xs
-
 
 {------ variables ------}
-eval (Identifier w) = lookupVar w
+eval (Identifier w) = do
+    st <- getStack
+    trace (printf "identifier: %s" w) (pure ())
+    trace (showStack st) (pure ())
+    getVar w
 
 {------ edge case ------}
 eval x = return x
@@ -110,14 +113,14 @@ booleanValue _ = True
 typeError :: a
 typeError = error "type error lol :3"
 
-execProgram :: [Sexpr] -> StackT WispVariable IO [Sexpr]
+execProgram :: [Sexpr] -> WispIO WispVariable [Sexpr]
 execProgram [] = return []
 execProgram (e:es) = do
     a <- eval e
     b <- execProgram es
     return $ a : b
 
-execProgram_ :: [Sexpr] -> StackT WispVariable IO ()
+-- execProgram_ :: [Sexpr] -> WispIO WispVariable ()
 execProgram_ [] = return ()
 execProgram_ (e:es) = do
     eval e

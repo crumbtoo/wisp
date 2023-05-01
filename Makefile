@@ -9,7 +9,7 @@ build/wisp.hs: src/wisp.y
 	happy -a -g -c -o $@ $<
 
 wisp: build/wisp.hs $(SOURCE)
-	ghc -outputdir=build -o $@ $< $(SOURCE)
+	ghc -package mtl -outputdir=build -o $@ $< $(SOURCE)
 
 .PHONY:
 clean:

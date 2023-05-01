@@ -6,12 +6,15 @@ import System.Console.GetOpt
 import System.Environment ( getArgs )
 import System.Exit
 import Control.Monad
+import Control.Monad.State
+import Data.Map (fromList)
 import Control.Monad.IO.Class
 
 import Evaluater
 import Lexer
 import Parser
 import Stack
+import WispMonad (WispVariable, unWispIO)
 
 data Flag 
     = Version 
@@ -33,10 +36,13 @@ printParse :: String -> IO ()
 printParse s = do
     label "tokens : " $ lexer $ s
     label "ast    : " $ parseProgram . lexer $ s
-    label "result : " =<< evalStackT (execProgram . parseProgram $ lexer s) defaultEnv
-    return ()
+    label "result : " =<< (runProgram $ parseProgram . lexer $ s)
     where
         label s a = putStrLn $ s ++ show a
+
+runProgram :: [Sexpr] -> IO [Sexpr]
+runProgram e = evalStateT
+    (evalStackT (unWispIO $ execProgram e) defaultEnv) (fromList [])
 
 -- TODO: is name collision a concern?
 defaultEnv :: [WispVariable]
@@ -69,7 +75,8 @@ main = do
     else
         forM_ files (\f -> do
             s <- readFile f
-            evalStackT (execProgram_ $ parseProgram $ lexer s) defaultEnv
+            -- evalStackT (execProgram_ $ parseProgram $ lexer s) defaultEnv
+            return ()
             )
 --}
         

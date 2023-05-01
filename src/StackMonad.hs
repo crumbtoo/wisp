@@ -9,12 +9,16 @@ import Data.Functor.Identity
 import Control.Applicative (liftA2)
 import Control.Monad (liftM2, liftM)
 import Control.Monad.IO.Class
+import Control.Monad.Trans.Class
 
 {-------- MonadStack --------}
 
 class (Monad m) => MonadStack e m | m -> e where
     getStack :: (Monad m) => m [e]
+    pushRuns :: (Monad m) => [e] -> m v -> m v
+
     pushRun :: (Monad m) => e -> m v -> m v
+    pushRun e m = pushRuns [e] m
 
 lookupStack :: (MonadStack (k,v) m, Eq k) => k -> m (Maybe v)
 lookupStack k = do
@@ -27,13 +31,13 @@ type Stack e v = StackT e Identity v
 newtype StackT e m v = StackT { runStackT :: [e] -> m (v, [e]) }
 
 evalStackT :: (Monad m) => StackT e m v -> [e] -> m v
-evalStackT m = fmap fst . runStackT m
+evalStackT m e = fmap fst $ runStackT m e
 
 instance (Monad m) => Functor (StackT e m) where
     fmap = liftM
 
 instance (Monad m) => Applicative (StackT e m) where
-    pure v = StackT $ \e -> return (v,e)
+    pure v = StackT $ \es -> return (v,es)
     liftA2 = liftM2
 
 -- (>>=) runs k with the inherited env
@@ -48,11 +52,15 @@ instance (Monad m) => MonadStack e (StackT e m) where
     getStack :: StackT e m [e]
     getStack = StackT $ \e -> return (e, e)
 
-    pushRun :: e -> StackT e m v -> StackT e m v
-    pushRun e st = StackT $ \es -> runStackT st (e:es)
+    pushRuns :: [e] -> StackT e m v -> StackT e m v
+    pushRuns e st = StackT $ \es -> runStackT st (e ++ es)
 
-instance MonadIO (StackT e IO) where
-    liftIO a = StackT $ \e -> do
-        a' <- a
-        return (a', e)
+instance MonadTrans (StackT e) where
+    lift :: (Monad m) => m a -> StackT e m a
+    lift ma = StackT $ \e -> do
+        a <- ma
+        return (a,e)
+
+instance (MonadIO m) => MonadIO (StackT e m) where
+    liftIO a = lift $ liftIO a
 
