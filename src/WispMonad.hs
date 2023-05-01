@@ -12,7 +12,7 @@ type WispVariable = (String,Sexpr)
 
 -- TODO: stack API should be through WispMonad
 class (MonadStack WispVariable m) => WispMonad m where
-    wispTrace :: (Show a) => a -> m ()
+    wispTrace :: String -> m ()
     setGlobal :: String -> Sexpr -> m ()
     lookupGlobal :: String -> m (Maybe Sexpr)
 
@@ -27,7 +27,7 @@ instance (Show e) => MonadStack e (WispIO e) where
     pushRuns e m = WispIO $ S.pushRuns e (unWispIO m)
 
 instance WispMonad (WispIO WispVariable) where
-    wispTrace = liftIO . putStrLn . show
+    wispTrace = liftIO . putStrLn
     
     setGlobal k v = WispIO $ StackT $ \es -> do
         modify (\s -> insert k v s)

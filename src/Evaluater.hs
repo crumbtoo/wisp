@@ -78,8 +78,9 @@ eval (If cond _then _else) = do
 eval (Trace e) = do
     e' <- eval e
     case e' of
-        (ConstNumber n) -> wispTrace n
-        (ConstBool b) -> wispTrace b
+        (ConstNumber n) -> wispTrace $ show n
+        (ConstBool True) -> wispTrace "true"
+        (ConstBool False) -> wispTrace "false"
         _ -> typeError
     return e'
 
