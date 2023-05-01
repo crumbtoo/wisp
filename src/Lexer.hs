@@ -33,6 +33,7 @@ data Sexpr = Identifier String
            | Multiply Sexpr Sexpr
            | Divide Sexpr Sexpr
            | Trace Sexpr
+           | Equal Sexpr Sexpr
            deriving Show
 
 lexer :: String -> [Token]
@@ -50,7 +51,7 @@ lexer s
     | word == "lambda"   = TokenLambda : lexer rest
     | word == "if"       = TokenIf     : lexer rest
     | word == "true"     = TokenTrue   : lexer rest
-    | word == "true"     = TokenFalse  : lexer rest
+    | word == "false"    = TokenFalse  : lexer rest
     where (word,rest) = span (\c -> not $ isSpace c || c == ')' || c == '(') s
 
 {-------- misc --------}

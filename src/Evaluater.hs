@@ -88,6 +88,16 @@ eval (Subtract a b) = evalBuiltinBinary (-) a b
 eval (Multiply a b) = evalBuiltinBinary (*) a b
 eval (Divide a b) = evalBuiltinBinary (div) a b
 
+eval (Equal a b) = do
+    a' <- eval a
+    b' <- eval b
+    
+    return $ case (Equal a' b') of
+        (Equal (ConstBool a) (ConstBool b)) -> ConstBool $ a == b
+        (Equal (ConstNumber a) (ConstNumber b)) -> ConstBool $ a == b
+        (Equal ConstUnit ConstUnit) -> ConstBool True
+        _ -> typeError
+
 {------ application ------}
 eval (f :-: x) = do
     f' <- eval f

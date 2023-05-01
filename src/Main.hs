@@ -50,6 +50,7 @@ defaultEnv = [ ("+", mkbinop Add)
              , ("-", mkbinop Subtract)
              , ("*", mkbinop Multiply)
              , ("/", mkbinop Divide)
+             , ("==", mkbinop Equal)
              , ("trace", Lambda "s" $ Trace $ Identifier "s")
              ]
     where mkbinop f = Lambda "x" (Lambda "y" (f (Identifier "x") (Identifier "y")))
