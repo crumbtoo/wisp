@@ -74,8 +74,7 @@ main = do
         getContents >>= (runProgram . parseProgram . lexer) >> return ()
     else
         forM_ files (\f -> do
-            s <- readFile f
-            -- evalStackT (execProgram_ $ parseProgram $ lexer s) defaultEnv
+            readFile f >>= (runProgram . parseProgram . lexer)
             return ()
             )
 --}
