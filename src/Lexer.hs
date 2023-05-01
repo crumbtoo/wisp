@@ -24,7 +24,7 @@ data Sexpr = Identifier String
            | Lambda String Sexpr
            | If Sexpr Sexpr Sexpr
            {-------- below only arise from evaluation --------}
-           | Closure [(String,Sexpr)] Sexpr
+           | Closure [(String,Sexpr)] String Sexpr
            | Add Sexpr Sexpr
            | Subtract Sexpr Sexpr
            | Multiply Sexpr Sexpr

@@ -5,5 +5,5 @@
 		 (factorial (- n 1)))
       (1))))
 
-(trace (factorial 2))
+(trace (factorial 6))
 

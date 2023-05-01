@@ -33,7 +33,7 @@ evalnum e = do
         (ConstNumber n) -> return n
         _ -> error "expected number"
 
-evalBuiltinBinary :: (WispMonad m, MonadStack WispVariable m) =>
+evalBuiltinBinary :: (WispMonad m) =>
     (Int -> Int -> Int) -> Sexpr -> Sexpr -> m Sexpr
 
 evalBuiltinBinary f a b = do
@@ -41,7 +41,7 @@ evalBuiltinBinary f a b = do
     b' <- evalnum b
     return $ ConstNumber $ a' `f` b'
 
-eval :: (WispMonad m, MonadStack WispVariable m) => Sexpr -> m Sexpr
+eval :: (WispMonad m) => Sexpr -> m Sexpr
 
 {------ recurse down parens ------}
 eval (Paren e) = eval e
@@ -59,15 +59,15 @@ eval (Define k v) = do
     return v'
 
 eval (Lambda x body) = do
-    a <- eval body
-    return $ Lambda x a
-
-eval (Lambda x body :-: arg) = do
     st <- getStack
-    trace (printf "lambda %s" x) (pure ())
-    trace (showStack st) (pure ())
+    return $ Closure st x body
+
+-- eval (Lambda x body :-: arg) = do
+--     eval 
+
+eval (Closure st x body :-: arg) = do
     arg' <- eval arg
-    pushRun (x,arg') (eval body)
+    pushRuns ((x,arg'):st) $ eval body
 
 eval (If cond _then _else) = do
     cond' <- eval cond
@@ -92,14 +92,11 @@ eval (f :-: x) = do
     f' <- eval f
     case f' of
         (Lambda _ _) -> eval $ f' :-: x
+        (Closure _ _ _) -> eval $ f' :-: x
         _            -> error "attempted to apply a non-abstraction"
 
 {------ variables ------}
-eval (Identifier w) = do
-    st <- getStack
-    trace (printf "identifier: %s" w) (pure ())
-    trace (showStack st) (pure ())
-    getVar w
+eval (Identifier w) = getVar w
 
 {------ edge case ------}
 eval x = return x
