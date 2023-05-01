@@ -9,7 +9,6 @@ import Text.Printf
 import Control.Monad.IO.Class
 import Control.Monad.State
 import Data.Map.Strict as M
-import Debug.Trace
 import WispMonad
 
 getVar :: (WispMonad m) => String -> m Sexpr
