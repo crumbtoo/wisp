@@ -1,14 +1,14 @@
 SOURCE := $(wildcard src/*.hs)
 
-all: build wisp
+all: build protolush
 
 build:
 	mkdir build || true
 
-build/wisp.hs: src/wisp.y
+build/Parser.hs: src/protolush.y
 	happy -a -g -c -o $@ $<
 
-wisp: build/wisp.hs $(SOURCE)
+protolush: build/Parser.hs $(SOURCE)
 	ghc -package mtl -outputdir=build -o $@ $< $(SOURCE)
 
 .PHONY:

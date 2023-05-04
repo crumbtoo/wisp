@@ -1,82 +1,49 @@
 {-# LANGUAGE LambdaCase #-}
 module Main where
 
-import Data.Maybe ( fromMaybe )
+import System.Environment(getArgs)
 import System.Console.GetOpt
-import System.Environment ( getArgs )
-import System.Exit
-import Control.Monad
-import Control.Monad.State
-import Data.Map (fromList)
-import Control.Monad.IO.Class
 
-import Evaluater
 import Lexer
 import Parser
-import Stack
-import WispMonad (WispVariable, unWispIO)
+import DotWriter
+import DotGraph
 
 data Flag 
-    = Version 
-    | EvalExpression String
-    | ExecProgram String
-    deriving Show
-
-options :: [OptDescr Flag]
-options =
-    [ Option ['V']     ["version"]      (NoArg Version)      
-        "show version number"
-    , Option ['e']     ["expression"]   (ReqArg EvalExpression "SEXPR")
-        "evaluate expression"
-    , Option ['c']     ["program"]   (ReqArg ExecProgram "PROG")
-        "execute program"
-    ]
+    = DotAST
+    deriving (Eq, Show)
 
 printParse :: String -> IO ()
 printParse s = do
     label "tokens : " $ lexer $ s
-    label "ast    : " $ parseProgram . lexer $ s
-    label "result : " =<< (runProgram $ parseProgram . lexer $ s)
+    label "ast    : " $ parseBlock . lexer $ s
     where
         label s a = putStrLn $ s ++ show a
 
-runProgram :: [Sexpr] -> IO [Sexpr]
-runProgram e = evalStateT
-    (evalStackT (unWispIO $ execProgram e) defaultEnv) (fromList [])
+options :: [OptDescr Flag]
+options =
+    [ Option ['d']     ["ast"] (NoArg DotAST)       "generate dot graph of ast"
+    ]
 
--- TODO: is name collision a concern?
-defaultEnv :: [WispVariable]
-defaultEnv = [ ("+", mkbinop Add)
-             , ("-", mkbinop Subtract)
-             , ("*", mkbinop Multiply)
-             , ("/", mkbinop Divide)
-             , ("==", mkbinop Equal)
-             , ("trace", Lambda "s" $ Trace $ Identifier "s")
-             ]
-    where mkbinop f = Lambda "x" (Lambda "y" (f (Identifier "x") (Identifier "y")))
-        
-
-wispOpts :: [String] -> IO ([Flag], [String])
-wispOpts argv = 
+parseOpts :: [String] -> IO ([Flag], [String])
+parseOpts argv = 
     case getOpt Permute options argv of
         (o,n,[]  ) -> return (o,n)
         (_,_,errs) -> do
             putStrLn $ show errs
-            ioError (userError (concat errs ++ usageInfo header options))
-   where header = "Usage: wisp [OPTION...] files..."
+            ioError $ userError $ concat errs
 
 main :: IO ()
 main = do
-    (opts,files) <- getArgs >>= wispOpts
-    return ()
+    argv <- getArgs
+    (flags,files) <- parseOpts argv
+    s <- getContents
 
-{--}
-    if null opts && null files then
-        getContents >>= (runProgram . parseProgram . lexer) >> return ()
+    if DotAST `elem` flags then
+        let tree = dotBlock . parseBlock . lexer $ s
+            (_,dot,_) = runDotWriter1 $ graph tree
+        in putStrLn dot
     else
-        forM_ files (\f -> do
-            readFile f >>= (runProgram . parseProgram . lexer)
-            return ()
-            )
---}
+        printParse s
+
 

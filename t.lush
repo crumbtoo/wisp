@@ -1,0 +1,6 @@
+for i = 0, 2+3 do
+	local x = $(echo doge)
+	print(x) > file > file2
+    goto label
+end
+

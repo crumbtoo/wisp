@@ -1,0 +1,22 @@
+digraph lush
+{
+	node [shape=record];
+
+	for0 [label="for"];
+	iter0 [label="{ Name | \"i\" }"]
+	init0 [label="{ Numeral | 0 }"]
+	bound0 [label="{ BinOp | + }"]
+	l0 [label="{ Numeral | 2 }"]
+	r0 [label="{ Numeral | 3 }"]
+	body0 [label="Body"]
+	stmt0 [label="{ Local | \"x\" }"]
+	rval0 [label="{ Command Substitution | $ echo doge }"]
+	stmt1 [label="{ Function Call | print }"]
+	expr0 [label="{ Var | \"x\" }"]
+
+	for0 -> { iter0, init0, bound0, body0 }
+	bound0 -> { l0, r0 }
+	body0 -> { stmt0, stmt1 }
+	stmt0 -> rval0
+	stmt1 -> expr0
+}

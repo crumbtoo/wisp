@@ -1,5 +1,5 @@
 dist-newstyle/
-wisp
+protolush
 *.o
 *.hi
-wisp.hs
+protolush.hs
